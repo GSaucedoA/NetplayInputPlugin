@@ -52,6 +52,10 @@ input_plugin::input_plugin(string path) {
     RomOpen                  = (void(*)(void))                                   GetProcAddress(dll, "RomOpen");
     WM_KeyDown               = (void(*)(WPARAM wParam, LPARAM lParam))           GetProcAddress(dll, "WM_KeyDown");
     WM_KeyUp                 = (void(*)(WPARAM wParam, LPARAM lParam))           GetProcAddress(dll, "WM_KeyUp");
+    // Spec 1.2 optional functions (may be NULL)
+    PluginLoaded             = (void(*)(void))                                  GetProcAddress(dll, "PluginLoaded");
+    WM_KillFocus             = (void(*)(WPARAM, LPARAM))                        GetProcAddress(dll, "WM_KillFocus");
+    RumbleCommand            = (void(*)(int, int))                              GetProcAddress(dll, "RumbleCommand");
 
     if (!InitiateControllers0100 && !InitiateControllers0101) {
         FreeLibrary(dll);

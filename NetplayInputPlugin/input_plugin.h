@@ -30,6 +30,10 @@ class input_plugin {
         void (*RomOpen)                (void)                                  = NULL;
         void (*WM_KeyDown)             (WPARAM wParam, LPARAM lParam)          = NULL;
         void (*WM_KeyUp)               (WPARAM wParam, LPARAM lParam)          = NULL;
+        // Spec 1.2 optional functions
+        void (*PluginLoaded)           (void)                                  = NULL;
+        void (*WM_KillFocus)           (WPARAM wParam, LPARAM lParam)          = NULL;
+        void (*RumbleCommand)          (int Control, int bRumble)              = NULL;
     protected:
     private:
         input_plugin();

@@ -223,6 +223,34 @@ EXPORT void CALL WM_KeyDown( WPARAM wParam, LPARAM lParam );
 *******************************************************************/ 
 EXPORT void CALL WM_KeyUp( WPARAM wParam, LPARAM lParam );
 
+/******************************************************************
+  Function: PluginLoaded
+  Purpose:  This function is called after the plugin has been loaded
+            by the emulator. (spec 1.2)
+  input:    none
+  output:   none
+*******************************************************************/
+EXPORT void CALL PluginLoaded (void);
+
+/******************************************************************
+  Function: WM_KillFocus
+  Purpose:  To pass the WM_KILLFOCUS message from the emulator to
+            the plugin. (spec 1.2)
+  input:    wParam and lParam of the WM_KILLFOCUS message.
+  output:   none
+*******************************************************************/
+EXPORT void CALL WM_KillFocus( WPARAM wParam, LPARAM lParam );
+
+/******************************************************************
+  Function: RumbleCommand
+  Purpose:  To process a rumble command for a specific controller.
+            (spec 1.2)
+  input:    - Controller Number (0 to 3)
+            - Whether to start (1) or stop (0) rumble.
+  output:   none
+*******************************************************************/
+EXPORT void CALL RumbleCommand( int Control, int bRumble );
+
 #if defined(__cplusplus)
 }
 #endif
