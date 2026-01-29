@@ -158,7 +158,7 @@ EXPORT void CALL DllTest ( HWND hParent ) {
 EXPORT void CALL GetDllInfo ( PLUGIN_INFO * PluginInfo ) {
     load();
 
-    PluginInfo->Version = 0x0101;
+    PluginInfo->Version = 0x0102;
     PluginInfo->Type = PLUGIN_TYPE_CONTROLLER;
 
     strncpy(PluginInfo->Name, APP_NAME_AND_VERSION, sizeof PLUGIN_INFO::Name);
@@ -290,6 +290,26 @@ EXPORT void CALL WM_KeyUp( WPARAM wParam, LPARAM lParam ) {
 
     if (my_plugin) {
         my_plugin->WM_KeyUp(wParam, lParam);
+    }
+}
+
+EXPORT void CALL PluginLoaded(void) {
+    load();
+
+    if (my_plugin && my_plugin->PluginLoaded) {
+        my_plugin->PluginLoaded();
+    }
+}
+
+EXPORT void CALL WM_KillFocus( WPARAM wParam, LPARAM lParam ) {
+    if (my_plugin && my_plugin->WM_KillFocus) {
+        my_plugin->WM_KillFocus(wParam, lParam);
+    }
+}
+
+EXPORT void CALL RumbleCommand( int Control, int bRumble ) {
+    if (my_plugin && my_plugin->RumbleCommand) {
+        my_plugin->RumbleCommand(Control, bRumble);
     }
 }
 
