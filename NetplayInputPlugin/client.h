@@ -54,7 +54,6 @@ class client: public service_wrapper, public connection {
         uint16_t port;
         std::string path;
         std::string save_path;
-        input_data pending_cia_input;
         std::shared_ptr<user_info> me = std::make_shared<user_info>();
         std::vector<std::shared_ptr<user_info>> user_map = { me };
         std::vector<std::shared_ptr<user_info>> user_list = { me };

@@ -425,25 +425,9 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
 
             HWND user_view = GetDlgItem(hwndDlg, IDC_USER_LIST);
             ListView_SetExtendedListViewStyle(user_view, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);
-            column.pszText = (LPWSTR)L"#";
+            column.pszText = (LPWSTR)L"Players";
             ListView_InsertColumn(user_view, 0, &column);
-            column.pszText = (LPWSTR)L"A";
-            ListView_InsertColumn(user_view, 1, &column);
-            column.pszText = (LPWSTR)L"Name";
-            ListView_InsertColumn(user_view, 2, &column);
-            column.pszText = (LPWSTR)L"1P";
-            ListView_InsertColumn(user_view, 3, &column);
-            column.pszText = (LPWSTR)L"2P";
-            ListView_InsertColumn(user_view, 4, &column);
-            column.pszText = (LPWSTR)L"3P";
-            ListView_InsertColumn(user_view, 5, &column);
-            column.pszText = (LPWSTR)L"4P";
-            ListView_InsertColumn(user_view, 6, &column);
-            column.pszText = (LPWSTR)L"Lag";
-            ListView_InsertColumn(user_view, 7, &column);
-            column.pszText = (LPWSTR)L"Ping";
-            ListView_InsertColumn(user_view, 8, &column);
-            dialog->set_column_scale(user_view, { 22, 22, 120, 32, 32, 32, 32, 36, 52 });
+            dialog->set_column_scale(user_view, { 380 });
 
             HWND server_view = GetDlgItem(hwndDlg, IDC_SERVER_LIST);
             ListView_SetExtendedListViewStyle(server_view, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);

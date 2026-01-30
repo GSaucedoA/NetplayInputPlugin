@@ -318,8 +318,10 @@ void client::process_input(array<BUTTONS, 4>& buttons) {
         if (me->input_authority == HOST) {
             send_hia_input(input);
             if (golf && input_detected(input, MARIO_GOLF_MASK)) {
-                pending_cia_input = input;
                 set_input_authority(CLIENT);
+                while (me->input_id <= input_id + me->lag) {
+                    send_input(input);
+                }
             }
         } else {
             while (me->input_id <= input_id + me->lag) {
