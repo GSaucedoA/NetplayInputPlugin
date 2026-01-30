@@ -193,6 +193,7 @@ void client_dialog::update_server_list(const map<string, double>& servers) {
         }
         while (count > servers.size()) {
             ListView_DeleteItem(list, 0);
+            count--;
         }
 
         wchar_t text[256];
