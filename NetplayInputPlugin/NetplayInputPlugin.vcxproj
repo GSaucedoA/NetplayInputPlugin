@@ -46,13 +46,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Server)|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -60,38 +60,38 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (Server)|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Server)|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (Server)|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -169,18 +169,21 @@
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
+      <Command>git rev-list HEAD --count &gt; %TEMP%\count.txt
 set /p COUNT= &lt; %TEMP%\count.txt
 git rev-parse --short HEAD &gt; %TEMP%\commit.txt
 set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
+set /a BETA=%COUNT%-147
 echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+echo #define APP_VERSION "148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy /Y "$(TargetDir)$(TargetName).dll" "D:\Emuladores\n64\online-plugin\Plugin\Input\"
+copy /Y "$(TargetDir)$(TargetName).pdb" "D:\Emuladores\n64\online-plugin\Plugin\Input\"</Command>
+      <Message>Copying plugin to PJ64 plugin folder...</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug (Server)|Win32'">
     <ClCompile>
@@ -200,16 +203,14 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
+      <Command>git rev-list HEAD --count &gt; %TEMP%\count.txt
 set /p COUNT= &lt; %TEMP%\count.txt
 git rev-parse --short HEAD &gt; %TEMP%\commit.txt
 set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
+set /a BETA=%COUNT%-147
 echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+echo #define APP_VERSION "148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -231,16 +232,14 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
+      <Command>git rev-list HEAD --count &gt; %TEMP%\count.txt
 set /p COUNT= &lt; %TEMP%\count.txt
 git rev-parse --short HEAD &gt; %TEMP%\commit.txt
 set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
+set /a BETA=%COUNT%-147
 echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+echo #define APP_VERSION "148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -262,16 +261,14 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
+      <Command>git rev-list HEAD --count &gt; %TEMP%\count.txt
 set /p COUNT= &lt; %TEMP%\count.txt
 git rev-parse --short HEAD &gt; %TEMP%\commit.txt
 set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
+set /a BETA=%COUNT%-147
 echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+echo #define APP_VERSION "148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148-beta-%BETA% (%COMMIT%)" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -298,16 +295,9 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
-set /p COUNT= &lt; %TEMP%\count.txt
-git rev-parse --short HEAD &gt; %TEMP%\commit.txt
-set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
-echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+      <Command>echo #define APP_NAME "AQZ NetPlay" &gt; version.h
+echo #define APP_VERSION "148" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -334,16 +324,9 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
-set /p COUNT= &lt; %TEMP%\count.txt
-git rev-parse --short HEAD &gt; %TEMP%\commit.txt
-set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
-echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+      <Command>echo #define APP_NAME "AQZ NetPlay" &gt; version.h
+echo #define APP_VERSION "148" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -369,16 +352,9 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
-set /p COUNT= &lt; %TEMP%\count.txt
-git rev-parse --short HEAD &gt; %TEMP%\commit.txt
-set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
-echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+      <Command>echo #define APP_NAME "AQZ NetPlay" &gt; version.h
+echo #define APP_VERSION "148" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
@@ -404,16 +380,9 @@ echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&
       <AdditionalDependencies>qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>git rev-list HEAD --count  &gt; %TEMP%\count.txt
-set /p COUNT= &lt; %TEMP%\count.txt
-git rev-parse --short HEAD &gt; %TEMP%\commit.txt
-set /p COMMIT= &lt; %TEMP%\commit.txt
-git status --short | find " " &gt;nul
-if errorlevel 1 (del %TEMP%\dirty.txt 2&gt; nul) else (echo -dirty&gt; %TEMP%\dirty.txt)
-set /p DIRTY= &lt; %TEMP%\dirty.txt 2&gt; nul
-echo #define APP_NAME "AQZ NetPlay" &gt; version.h
-echo #define APP_VERSION "%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
-echo #define APP_NAME_AND_VERSION "AQZ NetPlay v%COUNT% (%COMMIT%%DIRTY%)" &gt;&gt; version.h
+      <Command>echo #define APP_NAME "AQZ NetPlay" &gt; version.h
+echo #define APP_VERSION "148" &gt;&gt; version.h
+echo #define APP_NAME_AND_VERSION "AQZ NetPlay v148" &gt;&gt; version.h
 </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
