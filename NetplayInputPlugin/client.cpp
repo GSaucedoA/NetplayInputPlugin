@@ -72,7 +72,9 @@ client::client(shared_ptr<client_dialog> dialog) :
                     "/autolag			Toggle automatic lag on and off\r\n"
                     "/lag <lag>		Set the netplay input lag\r\n"
                     "/golf			Toggle golf mode on and off\r\n"
-                    "/auth <id>		Delegate input authority to another user\r\n");
+                    "/auth <id>		Delegate input authority to another user\r\n"
+                    "/favorite [address]	Add server to favorites\r\n"
+                    "/unfavorite		Remove server from favorites\r\n");
 
 #ifdef DEBUG
     input_log.open("input.log");
@@ -140,6 +142,9 @@ void client::load_public_server_list() {
                             } else if (content) {
                                 public_servers[line] = SERVER_STATUS_PENDING;
                             }
+                        }
+                        if (!me->favorite_server.empty() && me->favorite_server != "<-- No Favorite Set -->") {
+                            public_servers[me->favorite_server] = SERVER_STATUS_PENDING;
                         }
                         my_dialog->update_server_list(public_servers);
                         ping_public_server_list();
@@ -267,6 +272,17 @@ void client::set_name(const string& name) {
         me->name = name;
         trim(me->name);
         my_dialog->info("Your name is " + name);
+    });
+}
+
+string client::get_favorite_server() {
+    return run([&] { return me->favorite_server; });
+}
+
+void client::set_favorite_server(const string& fav_server) {
+    run([&] {
+        me->favorite_server = fav_server;
+        trim(me->favorite_server);
     });
 }
 
@@ -549,6 +565,25 @@ void client::on_message(string message) {
                         my_dialog->info("Please disable your frame rate limit");
                     }
                 }
+            } else if (params[0] == "/favorite") {
+                public_servers.erase(me->favorite_server);
+                if (params.size() >= 2) {
+                    me->favorite_server = params[1];
+                } else if (is_open()) {
+                    me->favorite_server = host + (port == 6400 ? "" : ":" + to_string(port)) + (path == "/" ? "" : path);
+                } else {
+                    throw runtime_error("Not connected. Use /favorite <address> to specify a server");
+                }
+                trim(me->favorite_server);
+                public_servers[me->favorite_server] = SERVER_STATUS_PENDING;
+                my_dialog->info("Added " + me->favorite_server + " to favorites");
+                my_dialog->update_server_list(public_servers);
+                ping_public_server_list();
+            } else if (params[0] == "/unfavorite") {
+                public_servers.erase(me->favorite_server);
+                me->favorite_server = "<-- No Favorite Set -->";
+                my_dialog->info("Favorite server removed");
+                my_dialog->update_server_list(public_servers);
             } else {
                 throw runtime_error("Unknown command: " + params[0]);
             }

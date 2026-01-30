@@ -290,6 +290,7 @@ struct user_info {
     uint32_t id = 0xFFFFFFFF;
     uint32_t authority = 0xFFFFFFFF;
     std::string name;
+    std::string favorite_server;
     rom_info rom;
     uint8_t lag = 5;
     double latency = NAN;

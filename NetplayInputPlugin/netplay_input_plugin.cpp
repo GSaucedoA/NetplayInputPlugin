@@ -76,6 +76,7 @@ void unload() {
 
     if (my_client) {
         my_settings->set_name(my_client->get_name());
+        my_settings->set_favorite_server(my_client->get_favorite_server());
     }
 
     my_settings->save();
@@ -240,6 +241,7 @@ EXPORT void CALL RomClosed (void) {
 
     if (my_client) {
         my_settings->set_name(my_client->get_name());
+        my_settings->set_favorite_server(my_client->get_favorite_server());
         my_client->post_close();
         my_client.reset();
     }
@@ -265,6 +267,7 @@ EXPORT void CALL RomOpen (void) {
     if (my_plugin) {
         my_client = make_shared<client>(make_shared<client_dialog>(this_dll, control_info.hMainWindow));
         my_client->set_name(my_settings->get_name());
+        my_client->set_favorite_server(my_settings->get_favorite_server());
         my_client->set_rom_info(rom);
         my_client->set_dst_controllers(control_info.Controls);
         my_client->load_public_server_list();

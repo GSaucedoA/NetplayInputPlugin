@@ -26,6 +26,8 @@ class client: public service_wrapper, public connection {
         bool wait_until_start();
         void post_close();
         client_dialog& get_dialog();
+        std::string get_favorite_server();
+        void set_favorite_server(const std::string& fav_server);
         virtual void on_receive(packet& packet, bool udp);
         virtual void on_error(const std::error_code& error);
     private:
