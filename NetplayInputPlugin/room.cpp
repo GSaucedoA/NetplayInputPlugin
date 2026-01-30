@@ -36,7 +36,7 @@ void room::on_user_join(user* user) {
 
     user->id = static_cast<uint32_t>(user_map.size());
     user->authority = user->id;
-    user->has_authority = true;
+    user->input_authority = CLIENT;
     user->join_timestamp = timestamp();
     for (auto& u : user_list) {
         u->send_join(dynamic_cast<user_info&>(*user));
@@ -93,7 +93,7 @@ double room::get_latency() const {
     double max1 = -INFINITY;
     double max2 = -INFINITY;
     for (auto& u : user_list) {
-        if (!u->has_authority) continue;
+        if (u->input_authority != CLIENT) continue;
         auto latency = u->get_latency();
         if (latency > max1) {
             max2 = max1;
@@ -107,7 +107,7 @@ double room::get_latency() const {
 
 double room::get_input_rate() const {
     for (auto& u : user_list) {
-        if (!u->has_authority) continue;
+        if (u->input_authority != CLIENT) continue;
         return u->input_rate;
     }
     return nan("");
@@ -222,5 +222,45 @@ void room::send_latencies() {
     }
     for (auto& u : user_list) {
         u->send(p);
+    }
+}
+
+void room::check_save_data() {
+    bool all_match = true;
+    string result;
+
+    for (auto& u : user_list) {
+        result += u->name + ":\n";
+        bool has_saves = false;
+        for (auto& s : u->saves) {
+            if (s.hash.empty()) continue;
+            has_saves = true;
+            result += "  " + s.save_name + " [" + s.hash.substr(0, 8) + "]\n";
+        }
+        if (!has_saves) {
+            result += "  (no saves)\n";
+        }
+    }
+
+    if (user_list.size() >= 2) {
+        for (int i = 0; i < 5; i++) {
+            string ref_hash;
+            for (auto& u : user_list) {
+                if (u->saves[i].hash.empty()) continue;
+                if (ref_hash.empty()) {
+                    ref_hash = u->saves[i].hash;
+                } else if (ref_hash != u->saves[i].hash) {
+                    all_match = false;
+                    break;
+                }
+            }
+            if (!all_match) break;
+        }
+    }
+
+    if (all_match) {
+        send_info("Room check: All save data matches\n" + result);
+    } else {
+        send_error("Room check: Save data mismatch detected!\n" + result);
     }
 }

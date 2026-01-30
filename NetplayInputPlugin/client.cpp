@@ -72,7 +72,10 @@ client::client(shared_ptr<client_dialog> dialog) :
                     "/autolag			Toggle automatic lag on and off\r\n"
                     "/lag <lag>		Set the netplay input lag\r\n"
                     "/golf			Toggle golf mode on and off\r\n"
-                    "/auth <id>		Delegate input authority to another user\r\n"
+                    "/mode			Toggle input authority (client/host)\r\n"
+                    "/hia_rate <N>		Set host input authority rate (Hz)\r\n"
+                    "/savesync [name]		Sync saves with another player\r\n"
+                    "/roomcheck		Check save data compatibility\r\n"
                     "/favorite [address]	Add server to favorites\r\n"
                     "/unfavorite		Remove server from favorites\r\n");
 
@@ -290,11 +293,6 @@ void client::set_rom_info(const rom_info& rom) {
     run([&] {
         me->rom = rom;
         my_dialog->info("Your game is " + me->rom.to_string());
-        if (rom.name == "MarioGolf64") {
-            golf_mode_mask = MARIO_GOLF_MASK;
-        } else {
-            golf_mode_mask = 0xFFFFFFFF;
-        }
     });
 }
 
@@ -315,44 +313,25 @@ void client::set_dst_controllers(CONTROL controllers[4]) {
 
 void client::process_input(array<BUTTONS, 4>& buttons) {
     run([&] {
-#ifdef DEBUG
-        //static uniform_int_distribution<uint32_t> dist(16, 63);
-        //static random_device rd;
-        //static uint32_t i = 0;
-        //while (input_id >= i) i += dist(rd);
-        //if (golf) buttons[0].A_BUTTON = (i & 1);
-#endif
         input_data input = { buttons[0].Value, buttons[1].Value, buttons[2].Value, buttons[3].Value, me->map };
-        repeated_input = (input == me->input ? repeated_input + 1 : 0);
-        me->input = input;
 
-        for (auto& u : user_list) {
-            if (u->authority != me->id) continue;
-            while (u->input_id <= input_id + u->lag) {
-                send_input(*u);
+        if (me->input_authority == HOST) {
+            send_hia_input(input);
+            if (golf && input_detected(input, MARIO_GOLF_MASK)) {
+                pending_cia_input = input;
+                set_input_authority(CLIENT);
             }
-        }
-
-        if (me->authority != me->id) {
-            if (golf && input_detected(me->input, golf_mode_mask)) {
-                me->pending = me->input;
-                for (auto& u : user_list) {
-                    change_input_authority(u->id, me->id);
-                }
-            } else if (udp_established) {
-                if (repeated_input < INPUT_HISTORY_LENGTH || input_id % 30 == 0) {
-                    send_input_update(me->input);
-                }
-            } else if (repeated_input == 0) {
-                send_input_update(me->input);
+        } else {
+            while (me->input_id <= input_id + me->lag) {
+                send_input(input);
             }
         }
 
         flush_all();
-        
+
         on_input();
     });
-    
+
     unique_lock<mutex> lock(next_input_mutex);
     next_input_condition.wait(lock, [=] { return !next_input.empty(); });
     buttons = next_input.front();
@@ -529,9 +508,6 @@ void client::on_message(string message) {
                 if (!is_open()) throw runtime_error("Not connected");
                 set_golf_mode(!golf);
                 send(packet() << GOLF << golf);
-                for (auto& u : user_list) {
-                    change_input_authority(u->id, (golf ? me->id : u->id));
-                }
             } else if (params[0] == "/map") {
                 if (!is_open()) throw runtime_error("Not connected");
 
@@ -545,26 +521,23 @@ void client::on_message(string message) {
                     }
                 }
                 set_input_map(map);
-            } else if (params[0] == "/auth") {
+            } else if (params[0] == "/mode") {
                 if (!is_open()) throw runtime_error("Not connected");
-
-                uint32_t authority_id = params.size() >= 2 ? stoi(params[1]) - 1 : me->id;
-                uint32_t user_id      = params.size() >= 3 ? stoi(params[2]) - 1 : me->id;
-
-                if (authority_id >= user_map.size() || !user_map[authority_id]) throw runtime_error("Invalid authority user ID");
-                if (user_id      >= user_map.size() || !user_map[user_id])      throw runtime_error("Invalid user ID");
-
-                if (user_map[user_id]->authority != authority_id) {
-                    change_input_authority(user_id, authority_id);
-
-                    if (user_id == authority_id) {
-                        my_dialog->info("Input authority has been restored");
-                        my_dialog->info("Please enable your frame rate limit.");
-                    } else {
-                        my_dialog->info("Input authority has been delegated to " + user_map[authority_id]->name);
-                        my_dialog->info("Please disable your frame rate limit");
-                    }
-                }
+                set_input_authority(me->input_authority == CLIENT ? HOST : CLIENT);
+            } else if (params[0] == "/hia_rate") {
+                if (!is_open()) throw runtime_error("Not connected");
+                if (params.size() < 2) throw runtime_error("Missing parameter");
+                uint32_t rate = stoi(params[1]);
+                send(packet() << HIA_RATE << rate);
+                my_dialog->info("HIA rate set to " + to_string(rate) + " Hz");
+            } else if (params[0] == "/savesync") {
+                if (!is_open()) throw runtime_error("Not connected");
+                string target = params.size() >= 2 ? params[1] : "";
+                send_savesync(target);
+                my_dialog->info("Syncing saves...");
+            } else if (params[0] == "/roomcheck") {
+                if (!is_open()) throw runtime_error("Not connected");
+                send(packet() << ROOM_CHECK);
             } else if (params[0] == "/favorite") {
                 public_servers.erase(me->favorite_server);
                 if (params.size() >= 2) {
@@ -628,15 +601,6 @@ void client::remove_user(uint32_t user_id) {
         if (u) user_list.push_back(u);
     }
 
-    if (me->authority == user_id) {
-        me->authority = me->id;
-        send_delegate_authority(me->id, me->authority);
-
-        if (started) {
-            send_input(*me);
-        }
-    }
-
     update_user_list();
 
     if (started) {
@@ -680,11 +644,12 @@ void client::close(const std::error_code& error) {
 
     me->id = 0;
     me->authority = 0;
+    me->input_authority = CLIENT;
     me->lag = 0;
     me->latency = NAN;
 
     if (started) {
-        send_input(*me);
+        send_input(input_data());
         on_input();
     }
 }
@@ -761,6 +726,8 @@ void client::on_receive(packet& p, bool udp) {
             auto info = p.read<user_info>();
             my_dialog->info(info.name + " has joined");
             auto u = make_shared<user_info>(info);
+            u->id = static_cast<uint32_t>(user_map.size());
+            u->authority = u->id;
             user_map.push_back(u);
             user_list.push_back(u);
             update_user_list();
@@ -783,13 +750,19 @@ void client::on_receive(packet& p, bool udp) {
 
             user_map.clear();
             user_list.clear();
-            while (p.available()) {
-                if (p.read<bool>()) {
-                    auto u = make_shared<user_info>(p.read<user_info>());
-                    user_map.push_back(u);
-                    user_list.push_back(u);
-                } else {
-                    user_map.push_back(nullptr);
+            {
+                uint32_t idx = 0;
+                while (p.available()) {
+                    if (p.read<bool>()) {
+                        auto u = make_shared<user_info>(p.read<user_info>());
+                        u->id = idx;
+                        u->authority = idx;
+                        user_map.push_back(u);
+                        user_list.push_back(u);
+                    } else {
+                        user_map.push_back(nullptr);
+                    }
+                    idx++;
                 }
             }
             me = user_list.back();
@@ -922,8 +895,8 @@ void client::on_receive(packet& p, bool udp) {
                     auto input = pin.read<input_data>();
                     if (!user->add_input_history(input_id++, input)) continue;
                     user->input_queue.push_back(input);
-                    if (golf && me->authority == me->id && input_detected(input, golf_mode_mask)) {
-                        change_input_authority(me->id, user->id);
+                    if (golf && me->input_authority == CLIENT && input_detected(input, MARIO_GOLF_MASK)) {
+                        set_input_authority(HOST);
                     }
                 }
             }
@@ -931,35 +904,29 @@ void client::on_receive(packet& p, bool udp) {
             break;
         }
 
-        case INPUT_UPDATE: {
-            auto user = user_map.at(p.read<uint32_t>());
+        case SAVE_INFO: {
+            auto sender_id = p.read<uint32_t>();
+            auto user = user_map.at(sender_id);
             if (!user) break;
-            user->input = p.read<input_data>();
+            for (auto& s : user->saves) s = p.read<save_info>();
             break;
         }
 
-        case REQUEST_AUTHORITY: {
-            auto user = user_map.at(p.read<uint32_t>());
-            auto authority = user_map.at(p.read<uint32_t>());
-            if (!user || !authority) break;
-            if (user->authority == me->id) {
-                change_input_authority(user->id, authority->id);
-            }
+        case SAVE_SYNC: {
+            auto sender_id = p.read<uint32_t>();
+            auto save = p.read<save_info>();
+            replace_save_file(save);
+            update_save_info();
+            send_save_info();
             break;
         }
 
-        case DELEGATE_AUTHORITY: {
-            auto user = user_map.at(p.read<uint32_t>());
-            auto authority = user_map.at(p.read<uint32_t>());
-            if (!user || !authority) break;
-            user->authority = authority->id;
-            if (user->authority == me->id) {
-                user->input = user->pending;
-                user->pending = input_data();
-                send_input(*user);
-                send_input(*user);
-                on_input();
-            }
+        case INPUT_AUTHORITY: {
+            auto user_id = p.read<uint32_t>();
+            auto auth = p.read<application>();
+            auto user = user_map.at(user_id);
+            if (!user) break;
+            user->input_authority = auth;
             update_user_list();
             break;
         }
@@ -976,60 +943,57 @@ void client::map_src_to_dst() {
 }
 
 void client::update_user_list() {
-    vector<vector<string>> lines;
+    vector<string> lines;
     lines.reserve(user_list.size());
 
     for (auto& u : user_list) {
-        vector<string> line;
-
-        line.push_back(to_string(u->id + 1));
-
-
-        line.push_back(u->id == u->authority ? "" : to_string(u->authority + 1));
-
-        line.push_back(u->name);
-
+        string line = "[";
         for (int j = 0; j < 4; j++) {
-            string m;
-            for (int i = 0; i < 4; i++) {
-                if (u->map.get(i, j)) {
-                    if (!m.empty()) m += ",";
-                    m += to_string(i + 1);
-                    switch (u->controllers[i].plugin) {
-                        case PLUGIN_MEMPAK: m += 'M'; break;
-                        case PLUGIN_RUMBLE_PAK: m += 'R'; break;
-                        case PLUGIN_TANSFER_PAK: m += 'T'; break;
-                    }
+            int i;
+            for (i = 0; i < 4 && !u->map.get(i, j); i++);
+            if (i == 4) {
+                line += "- ";
+            } else {
+                line += to_string(i + 1);
+                switch (u->controllers[i].plugin) {
+                    case PLUGIN_MEMPAK: line += "M"; break;
+                    case PLUGIN_RUMBLE_PAK: line += "R"; break;
+                    default: line += " "; break;
                 }
             }
-            line.push_back(m);
         }
-
-
-        line.push_back(to_string(u->lag));
-
-        if (!isnan(u->latency)) {
-            line.push_back(to_string((int)(u->latency * 1000)) + " ms");
+        line += "][";
+        if (u->input_authority == CLIENT) {
+            line += to_string(u->lag);
         } else {
-            line.push_back("");
+            line += "H";
         }
-
+        line += "] ";
+        line += u->name;
+        if (!isnan(u->latency)) {
+            line += " (" + to_string((int)(u->latency * 1000)) + " ms)";
+        }
         lines.push_back(line);
     }
 
     my_dialog->update_user_list(lines);
 }
 
-void client::change_input_authority(uint32_t user_id, uint32_t authority_id) {
-    auto user = user_map.at(user_id);
-    if (user->authority == authority_id) return;
+void client::set_input_authority(application auth) {
+    if (me->input_authority == auth) return;
+    me->input_authority = auth;
 
-    if (user->authority == me->id) {
-        user->authority = authority_id;
-        send_delegate_authority(user->id, authority_id);
-    } else {
-        send_request_authority(user->id, authority_id);
+    if (is_open()) {
+        send(packet() << INPUT_AUTHORITY << auth);
     }
+
+    if (auth == CLIENT) {
+        my_dialog->info("Input authority: Client (lag-compensated)");
+    } else {
+        my_dialog->info("Input authority: Host");
+    }
+
+    update_user_list();
 }
 
 void client::set_input_map(input_map new_map) {
@@ -1091,34 +1055,34 @@ void client::send_autolag(int8_t value) {
     send(packet() << AUTOLAG << value);
 }
 
-void client::send_input(user_info& user) {
-    user.add_input_history(user.input_id, user.input);
-    user.input_queue.push_back(user.input);
+void client::send_input(const input_data& input) {
+    me->add_input_history(me->input_id, input);
+    me->input_queue.push_back(input);
 
     if (!is_open()) return;
 
     if (udp_established) {
         packet p;
-        p << INPUT_DATA;
-        p.write_var(user.id);
-        p.write_var(user.input_id - user.input_history.size());
-        p.write_rle(packet() << user.input_history);
+        p << INPUT_DATA << CLIENT;
+        p.write_var(me->input_id - me->input_history.size());
+        p.write_rle(packet() << me->input_history);
         send_udp(p, false);
     }
 
     packet p;
-    p << INPUT_DATA;
-    p.write_var(user.id);
-    p.write_var(user.input_id - 1);
-    p.write_rle(packet() << user.input_history.back());
-    send(p, false);
+    p << INPUT_DATA << CLIENT;
+    p.write_var(me->input_id - 1);
+    p.write_rle(packet() << me->input_history.back());
+    connection::send(p, false);
 }
 
-void client::send_input_update(const input_data& input) {
+void client::send_hia_input(const input_data& input) {
+    if (!is_open()) return;
+
     if (udp_established) {
-        send_udp(packet() << INPUT_UPDATE << input);
+        send_udp(packet() << INPUT_DATA << HOST << input);
     } else {
-        send(packet() << INPUT_UPDATE << input);
+        send(packet() << INPUT_DATA << HOST << input);
     }
 }
 
@@ -1134,10 +1098,101 @@ void client::send_udp_ping() {
     send_udp(packet() << PING << timestamp());
 }
 
-void client::send_request_authority(uint32_t user_id, uint32_t authority_id) {
-    send(packet() << REQUEST_AUTHORITY << user_id << authority_id);
+void client::set_save_info(const string& save_path) {
+    run([&] {
+        this->save_path = save_path;
+        update_save_info();
+        send_save_info();
+    });
 }
 
-void client::send_delegate_authority(uint32_t user_id, uint32_t authority_id) {
-    send(packet() << DELEGATE_AUTHORITY << user_id << authority_id);
+void client::update_save_info() {
+    auto files = find_rom_save_files();
+    for (size_t i = 0; i < me->saves.size(); i++) {
+        if (i < files.size()) {
+            auto pos = files[i].find_last_of("\\/");
+            string filename = (pos != string::npos) ? files[i].substr(pos + 1) : files[i];
+            me->saves[i].rom_name = me->rom.name;
+            me->saves[i].save_name = filename;
+            me->saves[i].save_data.clear();
+            me->saves[i].hash = sha256_file(files[i]);
+        } else {
+            me->saves[i] = save_info();
+        }
+    }
+}
+
+vector<string> client::find_rom_save_files() {
+    vector<string> results;
+    if (save_path.empty() || !me->rom) return results;
+
+    wstring search_path = utf8_to_wstring(save_path + me->rom.to_string() + ".*");
+
+    WIN32_FIND_DATAW find_data;
+    HANDLE handle = FindFirstFileW(search_path.c_str(), &find_data);
+    if (handle != INVALID_HANDLE_VALUE) {
+        do {
+            string filename = wstring_to_utf8(find_data.cFileName);
+            auto ext_pos = filename.find_last_of('.');
+            if (ext_pos != string::npos) {
+                string ext = filename.substr(ext_pos);
+                if (ext == ".eep" || ext == ".sra" || ext == ".fla" || ext == ".mpk") {
+                    results.push_back(save_path + filename);
+                }
+            }
+        } while (FindNextFileW(handle, &find_data) && results.size() < 5);
+        FindClose(handle);
+    }
+
+    return results;
+}
+
+string client::sha256_file(const string& filepath) {
+    string hash;
+    CryptoPP::SHA256 sha;
+    CryptoPP::FileSource(filepath.c_str(), true,
+        new CryptoPP::HashFilter(sha,
+            new CryptoPP::HexEncoder(
+                new CryptoPP::StringSink(hash))));
+    return hash;
+}
+
+string client::slurp_binary(const string& filepath) {
+    ifstream file(filepath, ios::binary);
+    return string(istreambuf_iterator<char>(file), istreambuf_iterator<char>());
+}
+
+void client::replace_save_file(const save_info& save) {
+    if (save.save_data.empty() || save.save_name.empty() || save_path.empty()) return;
+
+    string file_path = save_path + save.save_name;
+    ofstream file(file_path, ios::binary);
+    file.write(save.save_data.data(), save.save_data.size());
+
+    my_dialog->info("Save file updated: " + save.save_name);
+}
+
+void client::send_save_info() {
+    if (!is_open()) return;
+
+    packet p;
+    p << SAVE_INFO;
+    for (auto& s : me->saves) p << s;
+    send(p);
+}
+
+void client::send_savesync(const string& target_name) {
+    if (!is_open()) return;
+
+    auto files = find_rom_save_files();
+    for (size_t i = 0; i < files.size() && i < 5; i++) {
+        save_info save;
+        save.rom_name = me->rom.name;
+        auto pos = files[i].find_last_of("\\/");
+        save.save_name = (pos != string::npos) ? files[i].substr(pos + 1) : files[i];
+        save.save_data = slurp_binary(files[i]);
+        save.hash = me->saves[i].hash;
+
+        send(packet() << SAVE_SYNC << target_name << save);
+    }
 }

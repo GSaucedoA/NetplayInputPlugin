@@ -129,7 +129,7 @@ void client_dialog::message(const string& name, const string& message) {
     }), NULL);
 }
 
-void client_dialog::update_user_list(const vector<vector<string>>& lines) {
+void client_dialog::update_user_list(const vector<string>& lines) {
     unique_lock<mutex> lock(mut);
     if (destroyed) return;
 
@@ -158,10 +158,8 @@ void client_dialog::update_user_list(const vector<vector<string>>& lines) {
 
         wchar_t text[256];
         for (size_t i = 0; i < lines.size(); i++) {
-            for (size_t j = 0; j < lines[i].size(); j++) {
-                StringCbCopy(text, sizeof(text), utf8_to_wstring(lines[i][j]).c_str());
-                ListView_SetItemText(list, i, j, text);
-            }
+            StringCbCopy(text, sizeof(text), utf8_to_wstring(lines[i]).c_str());
+            ListView_SetItemText(list, i, 0, text);
         }
 
         SendMessage(list, WM_SETREDRAW, TRUE, 0);

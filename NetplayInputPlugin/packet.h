@@ -4,7 +4,7 @@
 
 class packet : public std::vector<uint8_t> {
 public:
-    constexpr static size_t MAX_SIZE = 0xFFFF;
+    constexpr static size_t MAX_SIZE = 0x40000;
 
     packet() { }
     packet(size_t size) : std::vector<uint8_t>(size) { }

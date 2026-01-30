@@ -11,10 +11,6 @@
 
 using namespace std;
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
 static bool loaded = false;
 static bool rom_open = false;
 static HMODULE this_dll = NULL;
@@ -24,8 +20,19 @@ static shared_ptr<settings> my_settings;
 static shared_ptr<input_plugin> my_plugin;
 static shared_ptr<client> my_client;
 static string my_location;
+static string my_saves_location;
 static array<bool, 4> port_already_visited;
 static rom_info rom;
+
+static string get_parent_directory(const string& path) {
+    auto pos = path.find_last_of("\\/", path.length() - 2);
+    if (pos == string::npos) return path;
+    return path.substr(0, pos + 1);
+}
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 BOOL WINAPI DllMain(HMODULE hinstDLL, DWORD dwReason, LPVOID lpvReserved) {
     switch (dwReason) {
@@ -59,6 +66,13 @@ void load() {
     my_location = wstring_to_utf8(my_location_array);
 
     my_settings = make_shared<settings>(my_location + "netplay_input_plugin.ini");
+
+    // Detect save path: my_location = ".../Plugin/Input/", saves = "../../Save/"
+    string saves_candidate = get_parent_directory(get_parent_directory(my_location)) + "Save\\";
+    DWORD attrs = GetFileAttributesW(utf8_to_wstring(saves_candidate).c_str());
+    if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY)) {
+        my_saves_location = saves_candidate;
+    }
 
     try {
         my_plugin = make_shared<input_plugin>(my_location + my_settings->get_plugin_dll());
@@ -272,6 +286,9 @@ EXPORT void CALL RomOpen (void) {
         my_client->set_dst_controllers(control_info.Controls);
         my_client->load_public_server_list();
         my_client->get_external_address();
+        if (!my_saves_location.empty()) {
+            my_client->set_save_info(my_saves_location);
+        }
 
         my_plugin->RomOpen();
         my_client->set_src_controllers(my_plugin->controls);

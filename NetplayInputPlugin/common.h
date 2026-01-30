@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "packet.h"
 
-constexpr static uint32_t PROTOCOL_VERSION = 47;
+constexpr static uint32_t PROTOCOL_VERSION = 48;
 constexpr static uint32_t INPUT_HISTORY_LENGTH = 12;
 
 enum packet_type : uint8_t {
@@ -27,7 +27,12 @@ enum packet_type : uint8_t {
     INPUT_UPDATE,
     INPUT_RATE,
     REQUEST_AUTHORITY,
-    DELEGATE_AUTHORITY
+    DELEGATE_AUTHORITY,
+    SAVE_INFO,
+    ROOM_CHECK,
+    SAVE_SYNC,
+    INPUT_AUTHORITY,
+    HIA_RATE
 };
 
 enum query_type : uint8_t {
@@ -46,6 +51,11 @@ enum pak_type : int {
 enum message_type : uint32_t {
     ERROR_MSG = 0xFFFFFFFE,
     INFO_MSG  = 0xFFFFFFFF
+};
+
+enum application : uint8_t {
+    CLIENT,
+    HOST
 };
 
 // http://en64.shoutwiki.com/wiki/ROM
@@ -286,6 +296,32 @@ inline controller packet::read<controller>() {
     return c;
 }
 
+struct save_info {
+    std::string rom_name;
+    std::string save_name;
+    std::string save_data;
+    std::string hash;
+};
+
+template<>
+inline packet& packet::write<save_info>(const save_info& info) {
+    write(info.rom_name);
+    write(info.save_name);
+    write(info.save_data);
+    write(info.hash);
+    return *this;
+}
+
+template<>
+inline save_info packet::read<save_info>() {
+    save_info info;
+    info.rom_name = read<std::string>();
+    info.save_name = read<std::string>();
+    info.save_data = read<std::string>();
+    info.hash = read<std::string>();
+    return info;
+}
+
 struct user_info {
     uint32_t id = 0xFFFFFFFF;
     uint32_t authority = 0xFFFFFFFF;
@@ -298,12 +334,11 @@ struct user_info {
     input_map map;
     bool manual_map = false;
 
-    input_data input = input_data();
-    input_data pending = input_data();
     std::list<input_data> input_queue;
     std::list<input_data> input_history;
     uint32_t input_id = 0;
-    bool has_authority = false;
+    std::array<save_info, 5> saves;
+    application input_authority = CLIENT;
 
     bool add_input_history(uint32_t input_id, const input_data& input) {
         if (input_id != this->input_id) return false;
@@ -318,8 +353,6 @@ struct user_info {
 
 template<>
 inline packet& packet::write<user_info>(const user_info& info) {
-    write(info.id);
-    write(info.authority);
     write(info.name);
     write(info.rom);
     write(info.lag);
@@ -330,14 +363,14 @@ inline packet& packet::write<user_info>(const user_info& info) {
     write(info.controllers[3]);
     write(info.map);
     write(info.manual_map);
+    for (auto& s : info.saves) write(s);
+    write(info.input_authority);
     return *this;
 }
 
 template<>
 inline user_info packet::read<user_info>() {
     user_info info;
-    info.id = read<uint32_t>();
-    info.authority = read<uint32_t>();
     info.name = read<std::string>();
     info.rom = read<rom_info>();
     info.lag = read<uint8_t>();
@@ -348,6 +381,8 @@ inline user_info packet::read<user_info>() {
     info.controllers[3] = read<controller>();
     info.map = read<input_map>();
     info.manual_map = read<bool>();
+    for (auto& s : info.saves) s = read<save_info>();
+    info.input_authority = read<application>();
     return info;
 }
 

@@ -28,9 +28,6 @@ class user : public connection, public user_info {
         void send_info(const std::string& message);
         void send_error(const std::string& message);
         void send_start_game();
-        void send_input_update(uint32_t id, const input_data& input);
-        void send_request_authority(uint32_t user_id, uint32_t authority_id);
-        void send_delegate_authority(uint32_t user_id, uint32_t authority_id);
 
     private:
         server* my_server;
@@ -39,6 +36,7 @@ class user : public connection, public user_info {
         float input_rate = 0;
         std::list<double> latency_history;
         double join_timestamp = INFINITY;
+        input_data hia_input;
 
         friend class room;
         friend class server;

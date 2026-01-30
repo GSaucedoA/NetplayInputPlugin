@@ -214,26 +214,22 @@ void user::on_receive(packet& p, bool udp) {
         }
 
         case INPUT_DATA: {
-            auto user = my_room->user_map.at(p.read_var<uint32_t>());
-            if (!user) break;
-            auto i = p.read_var<uint32_t>();
-            packet pin;
-            pin.transpose(p.read_rle(), input_data::SIZE);
-            while (pin.available()) {
-                if (user->add_input_history(i++, pin.read<input_data>())) {
-                    for (auto& u : my_room->user_list) {
-                        if (u->id == id) continue;
-                        u->write_input_from(user);
+            auto app = p.read<application>();
+            if (app == CLIENT) {
+                auto i = p.read_var<uint32_t>();
+                packet pin;
+                pin.transpose(p.read_rle(), input_data::SIZE);
+                while (pin.available()) {
+                    if (add_input_history(i++, pin.read<input_data>())) {
+                        for (auto& u : my_room->user_list) {
+                            if (u->id == id) continue;
+                            u->write_input_from(this);
+                        }
                     }
                 }
+            } else {
+                hia_input = p.read<input_data>();
             }
-            break;
-        }
-
-        case INPUT_UPDATE: {
-            auto authority_user = my_room->user_map.at(authority);
-            if (!authority_user) break;
-            authority_user->send_input_update(id, p.read<input_data>());
             break;
         }
 
@@ -242,32 +238,63 @@ void user::on_receive(packet& p, bool udp) {
             break;
         }
 
-        case REQUEST_AUTHORITY: {
-            auto user = my_room->user_map.at(p.read<uint32_t>());
-            auto authority = my_room->user_map.at(p.read<uint32_t>());
-            if (!user || !authority) break;
+        case SAVE_INFO: {
+            for (auto& s : saves) s = p.read<save_info>();
+            packet out;
+            out << SAVE_INFO << id;
+            for (auto& s : saves) out << s;
             for (auto& u : my_room->user_list) {
                 if (u->id == id) continue;
-                u->send_request_authority(user->id, authority->id);
+                u->send(out);
             }
             break;
         }
 
-        case DELEGATE_AUTHORITY: {
-            auto user = my_room->user_map.at(p.read<uint32_t>());
-            auto authority = my_room->user_map.at(p.read<uint32_t>());
-            if (!user || !authority) break;
-            user->authority = authority->id;
+        case ROOM_CHECK: {
+            my_room->check_save_data();
+            break;
+        }
+
+        case SAVE_SYNC: {
+            auto target_name = p.read<string>();
+            auto save = p.read<save_info>();
+            packet out;
+            out << SAVE_SYNC << id << save;
             for (auto& u : my_room->user_list) {
                 if (u->id == id) continue;
-                u->send_delegate_authority(user->id, user->authority);
+                if (!target_name.empty() && u->name != target_name) continue;
+                bool needs_sync = false;
+                for (auto& s : u->saves) {
+                    if (s.save_name == save.save_name && s.hash != save.hash) {
+                        needs_sync = true;
+                        break;
+                    }
+                }
+                if (needs_sync) {
+                    u->send(out);
+                }
             }
+            break;
+        }
+
+        case INPUT_AUTHORITY: {
+            input_authority = p.read<application>();
+            packet out;
+            out << INPUT_AUTHORITY << id << input_authority;
             for (auto& u : my_room->user_list) {
-                u->has_authority = false;
+                if (u->id == id) continue;
+                u->send(out);
             }
+            break;
+        }
+
+        case HIA_RATE: {
+            my_room->hia_rate = p.read<uint32_t>();
+            packet out;
+            out << HIA_RATE << my_room->hia_rate;
             for (auto& u : my_room->user_list) {
-                auto auth = my_room->user_map.at(u->authority);
-                if (auth) auth->has_authority = true;
+                if (u->id == id) continue;
+                u->send(out);
             }
             break;
         }
@@ -364,25 +391,10 @@ void user::write_input_from(user* user) {
     send(p, false);
 
     for (auto& u : my_room->user_list) {
-        if (u->authority == id) continue;
+        if (u->input_authority != CLIENT) continue;
         if (u->input_id < user->input_id) return;
     }
     
     flush_all();
 }
 
-void user::send_input_update(uint32_t id, const input_data& input) {
-    if (udp_established) {
-        send_udp(packet() << INPUT_UPDATE << id << input);
-    } else {
-        send(packet() << INPUT_UPDATE << id << input);
-    }
-}
-
-void user::send_request_authority(uint32_t user_id, uint32_t authority_id) {
-    send(packet() << REQUEST_AUTHORITY << user_id << authority_id);
-}
-
-void user::send_delegate_authority(uint32_t user_id, uint32_t authority_id) {
-    send(packet() << DELEGATE_AUTHORITY << user_id << authority_id);
-}

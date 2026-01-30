@@ -34,7 +34,7 @@ class client_dialog {
         void info(const std::string& text);
         void error(const std::string& text);
         void message(const std::string& name, const std::string& message);
-        void update_user_list(const std::vector<std::vector<std::string>>& lines);
+        void update_user_list(const std::vector<std::string>& lines);
         void update_server_list(const std::map<std::string, double>& servers);
         void minimize();
         void destroy();

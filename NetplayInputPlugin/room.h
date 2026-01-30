@@ -31,6 +31,7 @@ class room: public std::enable_shared_from_this<room> {
         void send_error(const std::string& message);
         void set_lag(uint8_t lag, user* source);
         void send_latencies();
+        void check_save_data();
 
         const std::string id;
         server* my_server;
@@ -41,6 +42,7 @@ class room: public std::enable_shared_from_this<room> {
         uint8_t lag = 5;
         bool autolag = true;
         bool golf = false;
+        uint32_t hia_rate = 60;
 
         friend class user;
         friend class server;
