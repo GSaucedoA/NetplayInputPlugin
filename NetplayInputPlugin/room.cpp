@@ -15,6 +15,9 @@ const string& room::get_id() const {
 }
 
 void room::close() {
+    hia_active = false;
+    if (hia_timer) hia_timer->cancel();
+
     for (auto& u : user_list) {
         u->close();
     }
@@ -87,6 +90,8 @@ void room::on_user_quit(user* user) {
         update_controller_map();
         send_controllers();
     }
+
+    update_hia_timer();
 }
 
 double room::get_latency() const {
@@ -263,4 +268,52 @@ void room::check_save_data() {
     } else {
         send_error("Room check: Save data mismatch detected!\n" + result);
     }
+}
+
+void room::update_hia_timer() {
+    bool need_hia = false;
+    for (auto& u : user_list) {
+        if (u->input_authority == HOST) {
+            need_hia = true;
+            break;
+        }
+    }
+
+    if (need_hia && !hia_active) {
+        hia_active = true;
+        if (!hia_timer) {
+            hia_timer = make_unique<steady_timer>(*my_server->service);
+        }
+        on_hia_tick();
+    } else if (!need_hia && hia_active) {
+        hia_active = false;
+        hia_timer->cancel();
+    } else if (need_hia && hia_active) {
+        hia_timer->cancel();
+        on_hia_tick();
+    }
+}
+
+void room::on_hia_tick() {
+    if (!hia_active) return;
+
+    auto interval = std::chrono::microseconds(1000000 / hia_rate);
+    hia_timer->expires_after(interval);
+
+    auto self = shared_from_this();
+    hia_timer->async_wait([this, self](const error_code& error) {
+        if (error || !hia_active) return;
+
+        for (auto& u : user_list) {
+            if (u->input_authority != HOST) continue;
+            if (u->add_input_history(u->input_id, u->hia_input)) {
+                for (auto& other : user_list) {
+                    if (other->id == u->id) continue;
+                    other->write_input_from(u);
+                }
+            }
+        }
+
+        on_hia_tick();
+    });
 }

@@ -285,6 +285,7 @@ void user::on_receive(packet& p, bool udp) {
                 if (u->id == id) continue;
                 u->send(out);
             }
+            my_room->update_hia_timer();
             break;
         }
 
@@ -296,6 +297,7 @@ void user::on_receive(packet& p, bool udp) {
                 if (u->id == id) continue;
                 u->send(out);
             }
+            my_room->update_hia_timer();
             break;
         }
 

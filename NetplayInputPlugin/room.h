@@ -32,6 +32,8 @@ class room: public std::enable_shared_from_this<room> {
         void set_lag(uint8_t lag, user* source);
         void send_latencies();
         void check_save_data();
+        void update_hia_timer();
+        void on_hia_tick();
 
         const std::string id;
         server* my_server;
@@ -43,6 +45,8 @@ class room: public std::enable_shared_from_this<room> {
         bool autolag = true;
         bool golf = false;
         uint32_t hia_rate = 60;
+        bool hia_active = false;
+        std::unique_ptr<asio::steady_timer> hia_timer;
 
         friend class user;
         friend class server;
