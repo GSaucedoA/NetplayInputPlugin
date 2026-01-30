@@ -158,7 +158,7 @@ EXPORT void CALL DllTest ( HWND hParent ) {
 EXPORT void CALL GetDllInfo ( PLUGIN_INFO * PluginInfo ) {
     load();
 
-    PluginInfo->Version = 0x0102;
+    PluginInfo->Version = 0x0101;
     PluginInfo->Type = PLUGIN_TYPE_CONTROLLER;
 
     strncpy(PluginInfo->Name, APP_NAME_AND_VERSION, sizeof PLUGIN_INFO::Name);
