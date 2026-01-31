@@ -36,6 +36,7 @@ class client_dialog {
         void message(const std::string& name, const std::string& message);
         void update_user_list(const std::vector<std::string>& lines);
         void update_server_list(const std::map<std::string, double>& servers);
+        void update_button_states(bool connected, bool started, bool can_start, const std::string& mode_text);
         void minimize();
         void destroy();
         HWND get_emulator_window();

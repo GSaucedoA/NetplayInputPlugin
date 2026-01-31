@@ -661,6 +661,7 @@ void client::start_game() {
     started = true;
     start_condition.notify_all();
     my_dialog->info("Starting game...");
+    refresh_button_states();
 }
 
 void client::connect(const string& host, uint16_t port, const string& room) {
@@ -908,6 +909,7 @@ void client::on_receive(packet& p, bool udp) {
             auto user = user_map.at(sender_id);
             if (!user) break;
             for (auto& s : user->saves) s = p.read<save_info>();
+            refresh_button_states();
             break;
         }
 
@@ -976,6 +978,44 @@ void client::update_user_list() {
     }
 
     my_dialog->update_user_list(lines);
+    refresh_button_states();
+}
+
+bool client::check_rom_match() {
+    if (user_list.size() < 2) return true;
+    string ref_hash;
+    for (auto& u : user_list) {
+        if (u->rom.hash.empty()) continue;
+        if (ref_hash.empty()) {
+            ref_hash = u->rom.hash;
+        } else if (ref_hash != u->rom.hash) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool client::check_saves_match() {
+    if (user_list.size() < 2) return true;
+    for (int i = 0; i < 5; i++) {
+        string ref_hash;
+        for (auto& u : user_list) {
+            if (u->saves[i].hash.empty()) continue;
+            if (ref_hash.empty()) {
+                ref_hash = u->saves[i].hash;
+            } else if (ref_hash != u->saves[i].hash) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+void client::refresh_button_states() {
+    bool connected = is_open();
+    bool can_start = check_rom_match() && check_saves_match();
+    string mode_text = (me->input_authority == CLIENT) ? "Client" : "Host";
+    my_dialog->update_button_states(connected, started, can_start, mode_text);
 }
 
 void client::set_input_authority(application auth) {

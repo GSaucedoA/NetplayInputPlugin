@@ -81,6 +81,9 @@ class client: public service_wrapper, public connection {
         void on_input();
         void on_tick();
         void update_user_list();
+        void refresh_button_states();
+        bool check_rom_match();
+        bool check_saves_match();
         void set_input_authority(application auth);
         void set_input_map(input_map map);
         void set_golf_mode(bool golf);

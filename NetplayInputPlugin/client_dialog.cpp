@@ -225,6 +225,21 @@ void client_dialog::update_server_list(const map<string, double>& servers) {
     }), NULL);
 }
 
+void client_dialog::update_button_states(bool connected, bool started, bool can_start, const string& mode_text) {
+    unique_lock<mutex> lock(mut);
+    if (destroyed) return;
+
+    PostMessage(hwndDlg, WM_TASK, (WPARAM) new function<void(void)>([=] {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_START), connected && !started && can_start);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_SYNC), connected);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_CHECK), connected);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_MODE), connected && started);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_GOLF), connected);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_AUTOLAG), connected);
+        SetWindowText(GetDlgItem(hwndDlg, IDC_BTN_MODE), utf8_to_wstring(mode_text).c_str());
+    }), NULL);
+}
+
 void client_dialog::gui_thread() {
     HINSTANCE user32 = GetModuleHandle(L"User32.dll");
     if (user32) {
@@ -414,10 +429,16 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
             SetProp(hwndDlg, L"client_dialog", dialog);
 
             GetClientRect(hwndDlg, &dialog->initial_rect);
-            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_OUTPUT_EDIT), { 0.0f, 0.6f, 1.0f, 1.0f });
-            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_INPUT_EDIT), { 0.0f, 1.0f, 1.0f, 1.0f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_USER_LIST), { 0.0f, 0.0f, 0.6f, 0.6f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_SERVER_LIST), { 0.6f, 0.0f, 1.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_START), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_SYNC), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_CHECK), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_MODE), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_GOLF), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_AUTOLAG), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_OUTPUT_EDIT), { 0.0f, 0.6f, 1.0f, 1.0f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_INPUT_EDIT), { 0.0f, 1.0f, 1.0f, 1.0f });
 
             LVCOLUMN column;
             ZeroMemory(&column, sizeof(column));
@@ -493,6 +514,26 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
                             return TRUE;
                         }
                     }
+                    break;
+                }
+                case IDC_BTN_START:
+                case IDC_BTN_SYNC:
+                case IDC_BTN_CHECK:
+                case IDC_BTN_MODE:
+                case IDC_BTN_GOLF:
+                case IDC_BTN_AUTOLAG: {
+                    auto dialog = (client_dialog*)GetProp(hwndDlg, L"client_dialog");
+                    if (dialog && dialog->message_handler) {
+                        switch (LOWORD(wParam)) {
+                            case IDC_BTN_START:   dialog->message_handler("/start"); break;
+                            case IDC_BTN_SYNC:    dialog->message_handler("/savesync"); break;
+                            case IDC_BTN_CHECK:   dialog->message_handler("/roomcheck"); break;
+                            case IDC_BTN_MODE:    dialog->message_handler("/mode"); break;
+                            case IDC_BTN_GOLF:    dialog->message_handler("/golf"); break;
+                            case IDC_BTN_AUTOLAG: dialog->message_handler("/autolag"); break;
+                        }
+                    }
+                    return TRUE;
                 }
             }
             break;

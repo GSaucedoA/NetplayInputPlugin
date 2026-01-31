@@ -13,6 +13,12 @@
 #define IDC_OUTPUT_EDIT                 1021
 #define IDC_INPUT_EDIT                  1022
 #define IDC_SERVER_LIST                 1023
+#define IDC_BTN_START                   1030
+#define IDC_BTN_SYNC                    1031
+#define IDC_BTN_CHECK                   1032
+#define IDC_BTN_MODE                    1033
+#define IDC_BTN_GOLF                    1034
+#define IDC_BTN_AUTOLAG                 1035
 
 // Next default values for new objects
 // 
