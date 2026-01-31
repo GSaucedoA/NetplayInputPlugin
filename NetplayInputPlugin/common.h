@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "packet.h"
 
-constexpr static uint32_t PROTOCOL_VERSION = 49;
+constexpr static uint32_t PROTOCOL_VERSION = 50;
 constexpr static uint32_t INPUT_HISTORY_LENGTH = 12;
 
 enum packet_type : uint8_t {
@@ -212,6 +212,7 @@ struct rom_info {
     std::string name = "";
     char country_code = 0;
     uint8_t version = 0;
+    std::string hash = "";
 
     operator bool() const {
         return crc1 && crc2;
@@ -222,7 +223,8 @@ struct rom_info {
             && crc2 == rhs.crc2
             && name == rhs.name
             && country_code == rhs.country_code
-            && version == rhs.version;
+            && version == rhs.version
+            && hash == rhs.hash;
     }
 
     bool operator!=(const rom_info& rhs) {
@@ -256,6 +258,7 @@ inline packet& packet::write<rom_info>(const rom_info& info) {
     write(info.name);
     write(info.country_code);
     write(info.version);
+    write(info.hash);
     return *this;
 }
 
@@ -267,6 +270,7 @@ inline rom_info packet::read<rom_info>() {
     info.name = read<std::string>();
     info.country_code = read<char>();
     info.version = read<uint8_t>();
+    info.hash = read<std::string>();
     return info;
 }
 

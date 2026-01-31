@@ -31,7 +31,7 @@ class room: public std::enable_shared_from_this<room> {
         void send_error(const std::string& message);
         void set_lag(uint8_t lag, user* source);
         void send_latencies();
-        void check_save_data();
+        void check_room_data();
         void update_hia_timer();
         void on_hia_tick();
 

@@ -229,10 +229,33 @@ void room::send_latencies() {
     }
 }
 
-void room::check_save_data() {
+void room::check_room_data() {
     bool all_match = true;
     string result;
 
+    result += "ROM:\n";
+    for (auto& u : user_list) {
+        result += "  " + u->name + ": " + u->rom.to_string();
+        if (!u->rom.hash.empty()) {
+            result += " [" + u->rom.hash.substr(0, 8) + "]";
+        }
+        result += "\n";
+    }
+
+    if (user_list.size() >= 2) {
+        string ref_hash;
+        for (auto& u : user_list) {
+            if (u->rom.hash.empty()) continue;
+            if (ref_hash.empty()) {
+                ref_hash = u->rom.hash;
+            } else if (ref_hash != u->rom.hash) {
+                all_match = false;
+                break;
+            }
+        }
+    }
+
+    result += "\nSaves:\n";
     for (auto& u : user_list) {
         result += u->name + ":\n";
         bool has_saves = false;
@@ -246,7 +269,7 @@ void room::check_save_data() {
         }
     }
 
-    if (user_list.size() >= 2) {
+    if (all_match && user_list.size() >= 2) {
         for (int i = 0; i < 5; i++) {
             string ref_hash;
             for (auto& u : user_list) {
@@ -263,9 +286,9 @@ void room::check_save_data() {
     }
 
     if (all_match) {
-        send_info("Room check: All save data matches\n" + result);
+        send_info("Room check: All data matches\n" + result);
     } else {
-        send_error("Room check: Save data mismatch detected!\n" + result);
+        send_error("Room check: Data mismatch detected!\n" + result);
     }
 }
 

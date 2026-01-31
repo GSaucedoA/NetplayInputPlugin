@@ -9,6 +9,10 @@
 #include "util.h"
 #include "version.h"
 
+#include <cryptopp/sha.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/hex.h>
+
 using namespace std;
 
 static bool loaded = false;
@@ -28,6 +32,16 @@ static string get_parent_directory(const string& path) {
     auto pos = path.find_last_of("\\/", path.length() - 2);
     if (pos == string::npos) return path;
     return path.substr(0, pos + 1);
+}
+
+static string sha256_memory(const BYTE* data, size_t size) {
+    string hash;
+    CryptoPP::SHA256 sha;
+    CryptoPP::ArraySource(data, size, true,
+        new CryptoPP::HashFilter(sha,
+            new CryptoPP::HexEncoder(
+                new CryptoPP::StringSink(hash))));
+    return hash;
 }
 
 #if defined(__cplusplus)
@@ -224,6 +238,7 @@ EXPORT void CALL InitiateControllers (CONTROL_INFO ControlInfo) {
     rom.name.clear();
     rom.country_code = 0;
     rom.version = 0;
+    rom.hash.clear();
     if (control_info.HEADER) {
         int swap = (control_info.MemoryBswaped ? 3 : 0);
         for (int i = 0; i < 4; i++) {
@@ -237,6 +252,12 @@ EXPORT void CALL InitiateControllers (CONTROL_INFO ControlInfo) {
         rom.name.resize(rom.name.find_last_not_of(' ') + 1);
         rom.country_code = control_info.HEADER[0x3E ^ swap];
         rom.version = control_info.HEADER[0x3F ^ swap];
+
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery(control_info.HEADER, &mbi, sizeof(mbi)) && mbi.RegionSize > 0x40) {
+            size_t rom_size = mbi.RegionSize - (control_info.HEADER - static_cast<BYTE*>(mbi.BaseAddress));
+            rom.hash = sha256_memory(control_info.HEADER, rom_size);
+        }
     }
 
     controllers_initiated = true;

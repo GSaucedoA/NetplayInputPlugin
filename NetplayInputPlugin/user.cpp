@@ -251,7 +251,7 @@ void user::on_receive(packet& p, bool udp) {
         }
 
         case ROOM_CHECK: {
-            my_room->check_save_data();
+            my_room->check_room_data();
             break;
         }
 
