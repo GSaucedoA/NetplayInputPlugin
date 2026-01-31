@@ -368,8 +368,8 @@ void client::on_input() {
             for (int j = 0; b && j < 4; j++, b >>= 1) {
                 if (b & 1) {
                     result[j].Value |= buttons.Value;
-                    analog_x[j] += buttons.X_AXIS;
-                    analog_y[j] += buttons.Y_AXIS;
+                    analog_x[j] = static_cast<int16_t>(analog_x[j] + buttons.X_AXIS);
+                    analog_y[j] = static_cast<int16_t>(analog_y[j] + buttons.Y_AXIS);
                 }
             }
         }
@@ -487,20 +487,20 @@ void client::on_message(string message) {
                 }
             } else if (params[0] == "/lag") {
                 if (params.size() < 2) throw runtime_error("Missing parameter");
-                uint8_t lag = stoi(params[1]);
+                uint8_t lag = static_cast<uint8_t>(stoi(params[1]));
                 if (!is_open()) throw runtime_error("Not connected");
                 send_autolag(0);
                 send_lag(lag, true, true);
                 set_lag(lag);
             } else if (params[0] == "/my_lag") {
                 if (params.size() < 2) throw runtime_error("Missing parameter");
-                uint8_t lag = stoi(params[1]);
+                uint8_t lag = static_cast<uint8_t>(stoi(params[1]));
                 send_lag(lag, true, false);
                 set_lag(lag);
             } else if (params[0] == "/your_lag") {
                 if (params.size() < 2) throw runtime_error("Missing parameter");
                 if (!is_open()) throw runtime_error("Not connected");
-                uint8_t lag = stoi(params[1]);
+                uint8_t lag = static_cast<uint8_t>(stoi(params[1]));
                 send_autolag(0);
                 send_lag(lag, false, true);
             } else if (params[0] == "/autolag") {

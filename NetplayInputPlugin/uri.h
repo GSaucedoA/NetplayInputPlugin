@@ -22,7 +22,7 @@ struct uri {
         }
         index = str.rfind(":");
         if (index != std::string::npos && (index == str.find(":") || str[index - 1] == ']')) {
-            port = std::stoi(str.substr(index + 1));
+            port = static_cast<uint16_t>(std::stoi(str.substr(index + 1)));
             str = str.substr(0, index);
         }
         host = str;

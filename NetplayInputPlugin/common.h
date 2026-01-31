@@ -120,13 +120,13 @@ struct input_map {
         return bits == 0;
     }
 
-    bool get(uint8_t src, uint8_t dst) const {
-        if (src >= 4 || dst >= 4) return false;
+    bool get(int src, int dst) const {
+        if (src < 0 || src >= 4 || dst < 0 || dst >= 4) return false;
         return bits & (1 << (src * 4 + dst));
     }
 
-    void set(uint8_t src, uint8_t dst) {
-        if (src >= 4 || dst >= 4) return;
+    void set(int src, int dst) {
+        if (src < 0 || src >= 4 || dst < 0 || dst >= 4) return;
         bits |= (1 << (src * 4 + dst));
     }
 
