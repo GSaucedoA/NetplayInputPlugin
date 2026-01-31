@@ -6,6 +6,10 @@
 #include "util.h"
 #include "uri.h"
 
+#include <miniupnpc/miniupnpc.h>
+#include <miniupnpc/upnpcommands.h>
+#include <miniupnpc/upnpdev.h>
+
 using namespace std;
 using namespace asio;
 
@@ -462,6 +466,59 @@ void client::on_message(string message) {
                 port = my_server->open(port);
                 my_dialog->info("Server is listening on port " + to_string(port) + "...");
                 connect(host, port, path);
+            } else if (params[0] == "/hostupnp") {
+                if (started) throw runtime_error("Game has already started");
+
+                host = "127.0.0.1";
+                port = params.size() >= 2 ? stoi(params[1]) : 6400;
+                path = "/";
+                close();
+                my_server = make_shared<server>(service, false);
+                port = my_server->open(port);
+
+                my_dialog->info("Discovering UPnP devices...");
+                int upnp_error = 0;
+                UPNPDev* devlist = upnpDiscover(2000, NULL, NULL, 0, 0, 2, &upnp_error);
+                if (!devlist) {
+                    my_dialog->error("No UPnP devices found. Use /host for manual port forwarding.");
+                    my_dialog->info("Server is listening on port " + to_string(port) + "...");
+                    connect(host, port, path);
+                } else {
+                    UPNPUrls urls;
+                    IGDdatas data;
+                    char lanaddr[64];
+                    char wanaddr[64];
+                    int r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+                    freeUPNPDevlist(devlist);
+
+                    if (r != 1) {
+                        FreeUPNPUrls(&urls);
+                        my_dialog->error("No valid UPnP IGD found. Use /host for manual port forwarding.");
+                        my_dialog->info("Server is listening on port " + to_string(port) + "...");
+                        connect(host, port, path);
+                    } else {
+                        string port_str = to_string(port);
+                        int tcp_r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+                            port_str.c_str(), port_str.c_str(), lanaddr, "AQZ NetPlay", "TCP", NULL, "0");
+                        int udp_r = UPNP_AddPortMapping(urls.controlURL, data.first.servicetype,
+                            port_str.c_str(), port_str.c_str(), lanaddr, "AQZ NetPlay", "UDP", NULL, "0");
+
+                        char externalIP[40] = "";
+                        UPNP_GetExternalIPAddress(urls.controlURL, data.first.servicetype, externalIP);
+                        FreeUPNPUrls(&urls);
+
+                        if (tcp_r == 0 && udp_r == 0) {
+                            upnp_active = true;
+                            upnp_port = port;
+                            my_dialog->info("UPnP port mapping OK: " + string(externalIP) + ":" + port_str);
+                        } else {
+                            my_dialog->error("UPnP port mapping failed (TCP=" + to_string(tcp_r) + ", UDP=" + to_string(udp_r) + "). Port forwarding may be needed.");
+                        }
+
+                        my_dialog->info("Server is listening on port " + to_string(port) + "...");
+                        connect(host, port, path);
+                    }
+                }
             } else if (params[0] == "/join" || params[0] == "/connect") {
                 if (started) throw runtime_error("Game has already started");
                 if (params.size() < 2) throw runtime_error("Missing parameter");
@@ -630,6 +687,8 @@ void client::close(const std::error_code& error) {
     connection::close(error);
 
     timer.cancel();
+
+    cleanup_upnp();
 
     if (my_server) {
         my_server->close();
@@ -1016,6 +1075,31 @@ void client::refresh_button_states() {
     bool can_start = check_rom_match() && check_saves_match();
     string mode_text = (me->input_authority == CLIENT) ? "Client" : "Host";
     my_dialog->update_button_states(connected, started, can_start, mode_text);
+}
+
+void client::cleanup_upnp() {
+    if (!upnp_active) return;
+
+    string port_str = to_string(upnp_port);
+    int upnp_error = 0;
+    UPNPDev* devlist = upnpDiscover(2000, NULL, NULL, 0, 0, 2, &upnp_error);
+    if (devlist) {
+        UPNPUrls urls;
+        IGDdatas data;
+        char lanaddr[64];
+        char wanaddr[64];
+        if (UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr)) == 1) {
+            UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
+                port_str.c_str(), "TCP", NULL);
+            UPNP_DeletePortMapping(urls.controlURL, data.first.servicetype,
+                port_str.c_str(), "UDP", NULL);
+            FreeUPNPUrls(&urls);
+        }
+        freeUPNPDevlist(devlist);
+    }
+
+    upnp_active = false;
+    upnp_port = 0;
 }
 
 void client::set_input_authority(application auth) {

@@ -63,6 +63,8 @@ class client: public service_wrapper, public connection {
         std::shared_ptr<server> my_server;
         bool frame_limit = true;
         HANDLE qos_handle = NULL;
+        bool upnp_active = false;
+        uint16_t upnp_port = 0;
 #ifdef DEBUG
         std::ofstream input_log;
 #endif
@@ -106,4 +108,5 @@ class client: public service_wrapper, public connection {
         void replace_save_file(const save_info& save);
         void send_save_info();
         void send_savesync(const std::string& target_name = "");
+        void cleanup_upnp();
 };

@@ -19,6 +19,8 @@
 #define IDC_BTN_MODE                    1033
 #define IDC_BTN_GOLF                    1034
 #define IDC_BTN_AUTOLAG                 1035
+#define IDC_BTN_HOST                    1036
+#define IDC_BTN_UPNP                    1037
 
 // Next default values for new objects
 // 

@@ -230,6 +230,8 @@ void client_dialog::update_button_states(bool connected, bool started, bool can_
     if (destroyed) return;
 
     PostMessage(hwndDlg, WM_TASK, (WPARAM) new function<void(void)>([=] {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_HOST), !connected && !started);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_UPNP), !connected && !started);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_START), connected && !started && can_start);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_SYNC), connected);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_CHECK), connected);
@@ -431,6 +433,8 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
             GetClientRect(hwndDlg, &dialog->initial_rect);
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_USER_LIST), { 0.0f, 0.0f, 0.6f, 0.6f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_SERVER_LIST), { 0.6f, 0.0f, 1.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_HOST), { 0.0f, 0.6f, 0.0f, 0.6f });
+            dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_UPNP), { 0.0f, 0.6f, 0.0f, 0.6f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_START), { 0.0f, 0.6f, 0.0f, 0.6f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_SYNC), { 0.0f, 0.6f, 0.0f, 0.6f });
             dialog->set_window_scale(GetDlgItem(hwndDlg, IDC_BTN_CHECK), { 0.0f, 0.6f, 0.0f, 0.6f });
@@ -516,6 +520,8 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
                     }
                     break;
                 }
+                case IDC_BTN_HOST:
+                case IDC_BTN_UPNP:
                 case IDC_BTN_START:
                 case IDC_BTN_SYNC:
                 case IDC_BTN_CHECK:
@@ -525,6 +531,8 @@ INT_PTR CALLBACK client_dialog::DialogProc(HWND hwndDlg, UINT uMsg, WPARAM wPara
                     auto dialog = (client_dialog*)GetProp(hwndDlg, L"client_dialog");
                     if (dialog && dialog->message_handler) {
                         switch (LOWORD(wParam)) {
+                            case IDC_BTN_HOST:    dialog->message_handler("/host"); break;
+                            case IDC_BTN_UPNP:    dialog->message_handler("/hostupnp"); break;
                             case IDC_BTN_START:   dialog->message_handler("/start"); break;
                             case IDC_BTN_SYNC:    dialog->message_handler("/savesync"); break;
                             case IDC_BTN_CHECK:   dialog->message_handler("/roomcheck"); break;
