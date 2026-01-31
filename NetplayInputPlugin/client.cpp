@@ -645,7 +645,6 @@ void client::close(const std::error_code& error) {
     user_list.push_back(me);
 
     me->id = 0;
-    me->authority = 0;
     me->input_authority = CLIENT;
     me->lag = 0;
     me->latency = NAN;
@@ -729,7 +728,6 @@ void client::on_receive(packet& p, bool udp) {
             my_dialog->info(info.name + " has joined");
             auto u = make_shared<user_info>(info);
             u->id = static_cast<uint32_t>(user_map.size());
-            u->authority = u->id;
             user_map.push_back(u);
             user_list.push_back(u);
             update_user_list();
@@ -758,7 +756,6 @@ void client::on_receive(packet& p, bool udp) {
                     if (p.read<bool>()) {
                         auto u = make_shared<user_info>(p.read<user_info>());
                         u->id = idx;
-                        u->authority = idx;
                         user_map.push_back(u);
                         user_list.push_back(u);
                     } else {

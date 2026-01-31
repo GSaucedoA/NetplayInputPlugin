@@ -38,7 +38,6 @@ void room::on_user_join(user* user) {
     }
 
     user->id = static_cast<uint32_t>(user_map.size());
-    user->authority = user->id;
     user->input_authority = CLIENT;
     user->join_timestamp = timestamp();
     for (auto& u : user_list) {

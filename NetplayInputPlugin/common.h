@@ -3,7 +3,7 @@
 #include "stdafx.h"
 #include "packet.h"
 
-constexpr static uint32_t PROTOCOL_VERSION = 48;
+constexpr static uint32_t PROTOCOL_VERSION = 49;
 constexpr static uint32_t INPUT_HISTORY_LENGTH = 12;
 
 enum packet_type : uint8_t {
@@ -24,10 +24,7 @@ enum packet_type : uint8_t {
     GOLF,
     INPUT_MAP,
     INPUT_DATA,
-    INPUT_UPDATE,
     INPUT_RATE,
-    REQUEST_AUTHORITY,
-    DELEGATE_AUTHORITY,
     SAVE_INFO,
     ROOM_CHECK,
     SAVE_SYNC,
@@ -324,7 +321,6 @@ inline save_info packet::read<save_info>() {
 
 struct user_info {
     uint32_t id = 0xFFFFFFFF;
-    uint32_t authority = 0xFFFFFFFF;
     std::string name;
     std::string favorite_server;
     rom_info rom;
