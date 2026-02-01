@@ -70,6 +70,7 @@ client::client(shared_ptr<client_dialog> dialog) :
     my_dialog->info("Available Commands:\r\n\r\n"
                     "/name <name>		Set your name\r\n"
                     "/host [port]		Host a private server\r\n"
+                    "/hostupnp [port]	Host with automatic UPnP port mapping\r\n"
                     "/join <address>		Join a game\r\n"
                     "/start			Start the game\r\n"
                     "/map <src>:<dst> [...]	Map your controller ports\r\n"

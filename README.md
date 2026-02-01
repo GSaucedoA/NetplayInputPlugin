@@ -92,6 +92,8 @@ Si el servidor está detrás de un router, es necesario configurar **port forwar
    > Pide la IP al administrador del servidor.
 3. Asigna tu control con `/map` e inicia la partida con `/start`.
 
+> **Tip:** La ventana del plugin incluye una barra de botones (Host, Host UPnP, Start, Sync Saves, Room Check, Mode, Golf, AutoLag) que ejecutan los comandos principales sin necesidad de escribirlos.
+
 ---
 
 ## 💬 Comandos de Chat
@@ -100,6 +102,7 @@ Si el servidor está detrás de un router, es necesario configurar **port forwar
 |---|---|
 | `/join <host>:6400[/room]` | Unirse al servidor. Opcionalmente se puede especificar una sala (ej. `/join x.x.x.x:6400/sala1`). |
 | `/host [port]` | Crear un servidor privado en el puerto indicado (requiere port forwarding en el router). |
+| `/hostupnp [port]` | Crear un servidor con mapeo automático de puertos via UPnP (no requiere port forwarding manual). |
 | `/name <Nick>` | Cambiar tu nombre de jugador. Se recuerda entre sesiones. |
 | `/map <local> <netplay>` | Asignar control local a un slot de jugador. Ej: `/map 1 2` → tu control 1 es el Jugador 2. |
 | `/start` | Iniciar la partida (todos los jugadores deben estar listos). |
