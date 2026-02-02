@@ -225,7 +225,7 @@ void client_dialog::update_server_list(const map<string, double>& servers) {
     }), NULL);
 }
 
-void client_dialog::update_button_states(bool connected, bool started, bool can_start, const string& mode_text) {
+void client_dialog::update_button_states(bool connected, bool started, bool can_start, bool multiplayer, const string& mode_text) {
     unique_lock<mutex> lock(mut);
     if (destroyed) return;
 
@@ -233,8 +233,8 @@ void client_dialog::update_button_states(bool connected, bool started, bool can_
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_HOST), !connected && !started);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_UPNP), !connected && !started);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_START), connected && !started && can_start);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_SYNC), connected);
-        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_CHECK), connected);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_SYNC), connected && multiplayer);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_CHECK), connected && multiplayer);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_MODE), connected && started);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_GOLF), connected);
         EnableWindow(GetDlgItem(hwndDlg, IDC_BTN_AUTOLAG), connected);
