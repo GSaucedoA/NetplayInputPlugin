@@ -178,6 +178,10 @@ void user::on_receive(packet& p, bool udp) {
         }
 
         case START: {
+            if (id != 0) {
+                send_error("Only the host can start the game");
+                break;
+            }
             log("[" + my_room->get_id() + "] " + name + " started the game");
             my_room->on_game_start();
             break;

@@ -1115,7 +1115,7 @@ bool client::check_saves_match() {
 
 void client::refresh_button_states() {
     bool connected = is_open();
-    bool can_start = check_rom_match() && check_saves_match();
+    bool can_start = check_rom_match() && check_saves_match() && me->id == 0;
     bool multiplayer = user_list.size() > 1;
     string mode_text = (me->input_authority == CLIENT) ? "Client" : "Host";
     my_dialog->update_button_states(connected, started, can_start, multiplayer, mode_text);
