@@ -1253,22 +1253,43 @@ vector<string> client::find_rom_save_files() {
     vector<string> results;
     if (save_path.empty() || !me->rom) return results;
 
-    wstring search_path = utf8_to_wstring(save_path + me->rom.to_string() + ".*");
+    auto is_save_ext = [](const string& ext) {
+        return ext == ".eep" || ext == ".sra" || ext == ".fla" || ext == ".mpk";
+    };
 
-    WIN32_FIND_DATAW find_data;
-    HANDLE handle = FindFirstFileW(search_path.c_str(), &find_data);
-    if (handle != INVALID_HANDLE_VALUE) {
-        do {
-            string filename = wstring_to_utf8(find_data.cFileName);
-            auto ext_pos = filename.find_last_of('.');
-            if (ext_pos != string::npos) {
-                string ext = filename.substr(ext_pos);
-                if (ext == ".eep" || ext == ".sra" || ext == ".fla" || ext == ".mpk") {
-                    results.push_back(save_path + filename);
+    auto scan_pattern = [&](const wstring& pattern, const string& base_dir) {
+        WIN32_FIND_DATAW fd;
+        HANDLE h = FindFirstFileW(pattern.c_str(), &fd);
+        if (h != INVALID_HANDLE_VALUE) {
+            do {
+                if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+                string filename = wstring_to_utf8(fd.cFileName);
+                auto ext_pos = filename.find_last_of('.');
+                if (ext_pos != string::npos && is_save_ext(filename.substr(ext_pos))) {
+                    results.push_back(base_dir + filename);
                 }
-            }
-        } while (FindNextFileW(handle, &find_data) && results.size() < 5);
-        FindClose(handle);
+            } while (FindNextFileW(h, &fd) && results.size() < 5);
+            FindClose(h);
+        }
+    };
+
+    // PJ64 2.x: Save/<Internal Name>-<CRC1>-<CRC2>.<ext>
+    scan_pattern(utf8_to_wstring(save_path + me->rom.to_string() + ".*"), save_path);
+
+    // PJ64 3.x: Save/<Internal Name>-<MD5>/<Internal Name>.<ext>
+    if (results.empty()) {
+        wstring dir_pattern = utf8_to_wstring(save_path + me->rom.name + "-*");
+        WIN32_FIND_DATAW fd;
+        HANDLE h = FindFirstFileW(dir_pattern.c_str(), &fd);
+        if (h != INVALID_HANDLE_VALUE) {
+            do {
+                if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+                    string subdir = save_path + wstring_to_utf8(fd.cFileName) + "\\";
+                    scan_pattern(utf8_to_wstring(subdir + "*"), subdir);
+                }
+            } while (FindNextFileW(h, &fd) && results.empty());
+            FindClose(h);
+        }
     }
 
     return results;
