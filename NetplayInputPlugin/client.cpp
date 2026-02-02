@@ -84,6 +84,8 @@ client::client(shared_ptr<client_dialog> dialog) :
                     "/favorite [address]	Add server to favorites\r\n"
                     "/unfavorite		Remove server from favorites\r\n");
 
+    refresh_button_states();
+
 #ifdef DEBUG
     input_log.open("input.log");
 #endif
