@@ -107,6 +107,6 @@ class client: public service_wrapper, public connection {
         std::string slurp_binary(const std::string& filepath);
         void replace_save_file(const save_info& save);
         void send_save_info();
-        void send_savesync(const std::string& target_name = "");
+        size_t send_savesync(const std::string& target_name = "");
         void cleanup_upnp();
 };

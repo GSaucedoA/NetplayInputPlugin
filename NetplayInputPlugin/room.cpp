@@ -233,13 +233,13 @@ void room::check_room_data() {
     bool all_match = true;
     string result;
 
-    result += "ROM:\n";
+    result += "ROM:\r\n";
     for (auto& u : user_list) {
         result += "  " + u->name + ": " + u->rom.to_string();
         if (!u->rom.hash.empty()) {
             result += " [" + u->rom.hash.substr(0, 8) + "]";
         }
-        result += "\n";
+        result += "\r\n";
     }
 
     if (user_list.size() >= 2) {
@@ -255,17 +255,17 @@ void room::check_room_data() {
         }
     }
 
-    result += "\nSaves:\n";
+    result += "\r\nSaves:\r\n";
     for (auto& u : user_list) {
-        result += u->name + ":\n";
+        result += u->name + ":\r\n";
         bool has_saves = false;
         for (auto& s : u->saves) {
             if (s.hash.empty()) continue;
             has_saves = true;
-            result += "  " + s.save_name + " [" + s.hash.substr(0, 8) + "]\n";
+            result += "  " + s.save_name + " [" + s.hash.substr(0, 8) + "]\r\n";
         }
         if (!has_saves) {
-            result += "  (no saves)\n";
+            result += "  (no saves)\r\n";
         }
     }
 

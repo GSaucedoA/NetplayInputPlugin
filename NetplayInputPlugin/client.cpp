@@ -595,8 +595,12 @@ void client::on_message(string message) {
             } else if (params[0] == "/savesync") {
                 if (!is_open()) throw runtime_error("Not connected");
                 string target = params.size() >= 2 ? params[1] : "";
-                send_savesync(target);
-                my_dialog->info("Syncing saves...");
+                auto count = send_savesync(target);
+                if (count > 0) {
+                    my_dialog->info("Syncing saves... (" + to_string(count) + " file" + (count > 1 ? "s" : "") + " sent)");
+                } else {
+                    my_dialog->error("No save files found to sync");
+                }
             } else if (params[0] == "/roomcheck") {
                 if (!is_open()) throw runtime_error("Not connected");
                 send(packet() << ROOM_CHECK);
@@ -1009,6 +1013,22 @@ void client::update_user_list() {
     vector<string> lines;
     lines.reserve(user_list.size());
 
+    // Determine reference hashes for mismatch detection
+    string ref_rom_hash;
+    array<string, 5> ref_save_hashes;
+    if (user_list.size() >= 2) {
+        for (auto& u : user_list) {
+            if (ref_rom_hash.empty() && !u->rom.hash.empty()) {
+                ref_rom_hash = u->rom.hash;
+            }
+            for (int i = 0; i < 5; i++) {
+                if (ref_save_hashes[i].empty() && !u->saves[i].hash.empty()) {
+                    ref_save_hashes[i] = u->saves[i].hash;
+                }
+            }
+        }
+    }
+
     for (auto& u : user_list) {
         string line = "[";
         for (int j = 0; j < 4; j++) {
@@ -1036,6 +1056,26 @@ void client::update_user_list() {
         if (!isnan(u->latency)) {
             line += " (" + to_string((int)(u->latency * 1000)) + " ms)";
         }
+
+        // Mismatch indicators
+        if (user_list.size() >= 2) {
+            bool rom_bad = !ref_rom_hash.empty() && !u->rom.hash.empty() && u->rom.hash != ref_rom_hash;
+            bool save_bad = false;
+            for (int i = 0; i < 5; i++) {
+                if (!ref_save_hashes[i].empty() && !u->saves[i].hash.empty() && u->saves[i].hash != ref_save_hashes[i]) {
+                    save_bad = true;
+                    break;
+                }
+            }
+            if (rom_bad && save_bad) {
+                line += " (ROM! Save!)";
+            } else if (rom_bad) {
+                line += " (ROM!)";
+            } else if (save_bad) {
+                line += " (Save!)";
+            }
+        }
+
         lines.push_back(line);
     }
 
@@ -1329,8 +1369,8 @@ void client::send_save_info() {
     send(p);
 }
 
-void client::send_savesync(const string& target_name) {
-    if (!is_open()) return;
+size_t client::send_savesync(const string& target_name) {
+    if (!is_open()) return 0;
 
     auto files = find_rom_save_files();
     for (size_t i = 0; i < files.size() && i < 5; i++) {
@@ -1343,4 +1383,5 @@ void client::send_savesync(const string& target_name) {
 
         send(packet() << SAVE_SYNC << target_name << save);
     }
+    return files.size();
 }
